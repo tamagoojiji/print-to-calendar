@@ -1,0 +1,272 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  background: #f5f5f5;
+  color: #222;
+}
+
+.app {
+  max-width: 600px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: #fff;
+}
+
+.header {
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #eee;
+}
+
+.tab {
+  flex: 1;
+  padding: 12px;
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.tab.active {
+  color: #1976d2;
+  border-bottom-color: #1976d2;
+  font-weight: 600;
+}
+
+.main {
+  padding: 16px;
+}
+
+.desc {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.6;
+  margin: 8px 0;
+}
+
+.upload-area {
+  border: 2px dashed #bbb;
+  border-radius: 8px;
+  padding: 32px 16px;
+  text-align: center;
+  cursor: pointer;
+  color: #555;
+  font-size: 14px;
+  background: #fafafa;
+}
+
+.upload-area:hover {
+  border-color: #1976d2;
+  background: #f0f7ff;
+}
+
+.upload-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.loading {
+  text-align: center;
+  padding: 16px;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  margin: 0 auto 8px;
+  border: 3px solid #ddd;
+  border-top-color: #1976d2;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error {
+  background: #fff0f0;
+  border: 1px solid #ffcdd2;
+  color: #c62828;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.preview {
+  margin-top: 16px;
+}
+
+.ev-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ev-table th,
+.ev-table td {
+  border-bottom: 1px solid #eee;
+  padding: 6px 4px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.ev-table th {
+  background: #f8f8f8;
+  font-weight: 600;
+  font-size: 12px;
+  color: #666;
+}
+
+.ev-table input[type='date'],
+.ev-table input[type='time'],
+.ev-table input[type='text'] {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.add-btn {
+  margin-top: 8px;
+  background: none;
+  border: 1px dashed #bbb;
+  border-radius: 4px;
+  padding: 6px 12px;
+  color: #666;
+  font-size: 13px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.remove-btn {
+  background: none;
+  border: none;
+  color: #c62828;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.primary-btn {
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  flex: 1;
+}
+
+.primary-btn:hover {
+  background: #1565c0;
+}
+
+.secondary-btn {
+  background: #fff;
+  color: #555;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 10px 16px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.secondary-btn:hover {
+  background: #f5f5f5;
+}
+
+.event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.event-card {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 12px;
+  position: relative;
+}
+
+.event-date {
+  font-size: 13px;
+  color: #1976d2;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.event-time {
+  color: #666;
+  font-weight: 400;
+}
+
+.event-content {
+  font-size: 14px;
+  color: #222;
+  margin-bottom: 4px;
+}
+
+.event-url {
+  font-size: 12px;
+  color: #1976d2;
+  word-break: break-all;
+}
+
+.event-card .remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 12px;
+  padding: 2px 8px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+}
+
+.settings h2 {
+  font-size: 16px;
+  margin: 0 0 8px;
+}
+
+.api-key-row {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.api-key-input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+}
