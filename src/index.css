@@ -147,6 +147,19 @@ body {
   font-size: 13px;
 }
 
+.ev-table input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+}
+
+.ev-table tr.unchecked td {
+  opacity: 0.45;
+}
+
+.ev-table tr.unchecked td:first-child {
+  opacity: 1;
+}
+
 .add-btn {
   margin-top: 8px;
   background: none;
