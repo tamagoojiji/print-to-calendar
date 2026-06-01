@@ -1,5 +1,42 @@
 # DESIGN.md — print-to-calendar
 
+> **【v2: 販売版アーキテクチャ（2026-06〜）】**
+> Phase 1（クライアントのみPWA）から、バックエンド付きの販売プロダクトへ移行。
+> 以下の「## 1. 概要」以降はv1（クライアントのみ）の設計で履歴として残す。v2の正は本ブロック。
+>
+> ### 何が変わったか
+> | 項目 | v1 | v2（販売版） |
+> |---|---|---|
+> | Geminiキー | ユーザーがlocalStorageに入力 | **バックエンドに隠蔽**（フロント不可視） |
+> | バックエンド | なし | **VPS + Hono/Node + SQLite(better-sqlite3)**（`server/`） |
+> | 課金 | なし | Stripe Payment Links + Webhook → ライセンス自動発行 |
+> | ライセンス | なし | キー発行・HMACハッシュ照合・6ヶ月期限・月30回制限・翌月遅延リセット |
+> | Googleカレンダー | 未実装 | **サーバー側OAuth + refresh token AES-256-GCM暗号化保存 + 自動同期** |
+> | 予定保存先 | localStorage | DB（saved_events） |
+> | 通知 | なし | 同期失敗時にDiscord Webhookへ原因付き通知 |
+> | サポート | なし | 購入後3ヶ月無料 + 半年500円の有料サポート土台 |
+> | その他 | なし | .ics出力 / 最低限の管理画面 / 複数アプリ共通ライセンス基盤 |
+>
+> ### 構成
+> - フロント（このリポジトリ直下）: ライセンスキー方式に改修。`VITE_API_BASE` でバックエンドを指す。
+> - バックエンド: `server/`（Hono/Node、SQLite、Docker）。詳細は `server/README.md`。
+> - DB: 10テーブル（apps / plans / users / licenses / purchases / support_contracts /
+>   google_connections / saved_events / calendar_sync_logs / usage_logs）+ oauth_states + license_reveals。
+>   運用は print-to-calendar 1アプリのみ、構造は複数アプリ対応。
+>
+> ### セキュリティ原則
+> - フロントに置かない: Geminiキー / Stripe secret / Webhook secret / Google secret /
+>   Discord Webhook URL / ライセンス発行ロジック / 暗号鍵。すべてVPSの `.env`。
+> - ライセンスキーはDBに平文保存せず HMAC-SHA256 ハッシュのみ。refresh tokenはAES-256-GCM暗号化。
+>
+> ### 残タスク（このv2初期構築の対象外＝後続フェーズ）
+> - Phase 0（外部サービス作成）: `server/README.md` の手順をユーザーが実施
+> - VPS上での実起動・E2E疎通確認（ローカルはbetter-sqlite3ネイティブビルド不可のため未実施）
+> - LifeBear / TimeTree 向け案内画面、利用期限切れ画面などUIの作り込み
+> - プライバシーポリシー / 特商法 / 利用規約（`terms-check` スキル）
+>
+> ---
+
 ## 1. 概要
 - **一言で**: 子供の学校・塾の予定プリントを撮影 → Geminiで解析 → Googleカレンダーに登録するPWA
 - **ターゲット**: 子育て中のスマホユーザー（最初はユーザー本人）

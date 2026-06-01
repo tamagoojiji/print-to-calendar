@@ -1,0 +1,26 @@
+# VPSの /opt/docker/docker-compose.yml に追記するサービス定義（抜粋）。
+# 実体は /opt/docker/print-to-calendar/ に配置（scpで転送）。
+#
+#   scp -r server/ vps:/opt/docker/print-to-calendar/
+#   ssh vps "cd /opt/docker/print-to-calendar && cp env.sample .env && nano .env"  # 実値を記入
+#   ssh vps "cd /opt/docker && docker compose up -d --build print-to-calendar"
+#   ssh vps "docker logs print-to-calendar --tail 30"
+#
+services:
+  print-to-calendar:
+    build: ./print-to-calendar
+    container_name: print-to-calendar
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Tokyo
+    env_file:
+      - ./print-to-calendar/.env
+    volumes:
+      - ./print-to-calendar/data:/app/data   # SQLite DBを永続化
+    ports:
+      - "8787:8787"                          # 前段のリバースプロキシ(nginx/caddy)でTLS終端し公開
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
