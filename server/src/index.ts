@@ -9,6 +9,7 @@ import { eventsRoute } from './routes/events.js';
 import { googleRoute } from './routes/google.js';
 import { webhookRoute } from './routes/webhook.js';
 import { adminRoute } from './routes/admin.js';
+import { provisionRoute } from './routes/provision.js';
 
 migrate();
 warnMissingSecrets();
@@ -27,6 +28,7 @@ app.route('/api/events', eventsRoute);
 app.route('/api/google', googleRoute);
 app.route('/webhook', webhookRoute);
 app.route('/admin', adminRoute);
+app.route('/provision', provisionRoute);
 
 serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   console.log(`[print-to-calendar] listening on :${info.port}`);

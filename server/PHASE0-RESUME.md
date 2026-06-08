@@ -11,12 +11,12 @@
 - 内部E2E成功（`/health` / 管理API手動発行 / ライセンス検証 / 不正キー拒否）
 - DNS: `print-to-calendar.tamago-ai-world.com` → `207.180.238.184`（権威ConoHa登録済み・主要resolver伝播確認済み）
 - nginx の **`:80` だけの vhost** 作成済み（ACMEチャレンジ＋https리ダイレクト）
+- **TLS証明書発行済み**（Let's Encrypt / 2026-06-06発行・2026-09-03期限）
+- **nginx `:443` ブロック追加・リロード済み**（バックアップ `*.bak-ptc-443-*` あり）
+- **HTTPS疎通確認OK**: `https://print-to-calendar.tamago-ai-world.com/health` → `{"ok":true,...}` / http→https 301
 
-### ⏳ 残り（明日以降）
-1. **TLS証明書の発行**（certbot）← ここから再開
-2. nginx の **`:443` ブロック追加** → リロード
-3. HTTPS疎通確認（`/health` `/admin`）
-4. `.env` に APIキー4種を入力（ユーザーがVPS上で直接）
+### ⏳ 残り
+4. `.env` に APIキー4種を入力（ユーザーがVPS上で直接）← **ここから再開**
 5. 外部サービス設定（Stripe / Google OAuth / Discord）
 6. フロント `VITE_API_BASE` 設定 → 再ビルド → gh-pagesデプロイ
 7. 公開E2E（連携→撮影→確認→保存→同期）
