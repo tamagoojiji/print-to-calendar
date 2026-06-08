@@ -62,13 +62,24 @@ function buildPrompt(): string {
 
 async function callGemini(prompt: string, imageBase64: string, mimeType: string): Promise<{ text: string; model: string }> {
   if (!env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY未設定');
-  const payload = {
-    contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType, data: imageBase64 } }] }],
-    generationConfig: { temperature: 0.1, maxOutputTokens: 2048 },
-  };
 
   const failures: string[] = [];
   for (const model of GEMINI_MODELS) {
+    // gemini-2.5系は思考(thinking)が既定ON。maxOutputTokensが低いと思考でトークンを使い切り、
+    // 本文(JSON)が空になる(finishReason=MAX_TOKENS)。flash系は思考OFF＋JSON強制で確実化し、
+    // proは思考OFF(budget 0)非対応のためトークンを多めに確保して対応する。
+    const generationConfig: Record<string, unknown> = {
+      temperature: 0.1,
+      maxOutputTokens: 8192,
+      responseMimeType: 'application/json',
+    };
+    if (model !== 'gemini-2.5-pro') {
+      generationConfig.thinkingConfig = { thinkingBudget: 0 };
+    }
+    const payload = {
+      contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType, data: imageBase64 } }] }],
+      generationConfig,
+    };
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`;
     const res = await fetch(url, {
       method: 'POST',

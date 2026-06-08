@@ -25,6 +25,8 @@ export const env = {
   DISCORD_ERROR_WEBHOOK_URL: opt('DISCORD_ERROR_WEBHOOK_URL'),
   APP_BASE_URL: opt('APP_BASE_URL', 'https://tamagoojiji.github.io/print-to-calendar/'),
   ADMIN_TOKEN: opt('ADMIN_TOKEN', 'dev-admin-token-change-me'),
+  // 外部ストアからのライセンス発行専用トークン（最小権限。未設定なら /provision は常に401）
+  PROVISION_TOKEN: opt('PROVISION_TOKEN'),
   // CORS許可オリジン（カンマ区切り）。本番はGitHub Pagesオリジン。
   CORS_ORIGINS: opt('CORS_ORIGINS', 'http://localhost:5173,https://tamagoojiji.github.io'),
 };
