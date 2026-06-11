@@ -27,30 +27,36 @@ export default function App() {
   // 初回: Googleコールバック / Stripe購入完了 / ライセンス検証
   useEffect(() => {
     (async () => {
-      // Googleコールバック後のハッシュ
-      const hash = window.location.hash;
-      if (hash.includes('google=connected')) {
-        setToast('Googleカレンダーと連携しました');
-        history.replaceState(null, '', window.location.pathname + window.location.search);
-      } else if (hash.includes('google=error')) {
-        setToast('Google連携に失敗しました。設定からやり直してください');
-        history.replaceState(null, '', window.location.pathname + window.location.search);
-      }
-
-      // Stripe購入完了（success_urlに ?session_id=... が付与される想定）
-      const params = new URLSearchParams(window.location.search);
-      const sessionId = params.get('session_id');
-      if (sessionId && !getLicenseKey()) {
-        const r = await api.checkoutResult(sessionId);
-        if (r.ok && r.licenseKey) {
-          setLicenseKey(r.licenseKey);
-          setToast('ご購入ありがとうございます。ライセンスを設定しました');
-          history.replaceState(null, '', window.location.pathname);
+      try {
+        // Googleコールバック後のハッシュ
+        const hash = window.location.hash;
+        if (hash.includes('google=connected')) {
+          setToast('Googleカレンダーと連携しました');
+          history.replaceState(null, '', window.location.pathname + window.location.search);
+        } else if (hash.includes('google=error')) {
+          setToast('Google連携に失敗しました。設定からやり直してください');
+          history.replaceState(null, '', window.location.pathname + window.location.search);
         }
-      }
 
-      await revalidate();
-      setBooted(true);
+        // Stripe購入完了（success_urlに ?session_id=... が付与される想定）
+        const params = new URLSearchParams(window.location.search);
+        const sessionId = params.get('session_id');
+        if (sessionId && !getLicenseKey()) {
+          const r = await api.checkoutResult(sessionId);
+          if (r.ok && r.licenseKey) {
+            setLicenseKey(r.licenseKey);
+            setToast('ご購入ありがとうございます。ライセンスを設定しました');
+            history.replaceState(null, '', window.location.pathname);
+          }
+        }
+
+        await revalidate();
+      } catch {
+        // 通信失敗でも起動は継続する（読み込み中で固まらせない）
+        setToast('通信に失敗しました。電波の良い場所で再読み込みしてください');
+      } finally {
+        setBooted(true);
+      }
     })();
   }, [revalidate]);
 
