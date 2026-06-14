@@ -1,0 +1,15 @@
+{
+  "id": "print-to-calendar",
+  "title": "プリント→カレンダー",
+  "desc": "学校・塾の予定プリントを撮影→AIが解析→Googleカレンダーに自動登録。手入力ゼロ。",
+  "type": "pwa",
+  "appUrl": "https://tamagoojiji.github.io/print-to-calendar/",
+  "lineAddUrl": "",
+  "thumb": "https://app.tamago-ai-world.com/img/print-to-calendar-thumb.png",
+  "price": 500,
+  "provision": "ptc",
+  "category": "便利ツール",
+  "target": ["ママ", "忙しい人"],
+  "guideUrl": "",
+  "noteUrl": ""
+}
