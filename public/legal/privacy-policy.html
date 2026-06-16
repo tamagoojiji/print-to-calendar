@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>プライバシーポリシー｜print-to-calendar</title>
+<style>
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', sans-serif; background: #f5f5f5; color: #222; line-height: 1.9; }
+  .wrap { max-width: 720px; margin: 0 auto; background: #fff; min-height: 100vh; padding: 24px 20px 60px; }
+  h1 { font-size: 20px; }
+  h2 { font-size: 16px; margin-top: 28px; border-left: 4px solid #4f46e5; padding-left: 8px; }
+  h3 { font-size: 14px; margin-top: 18px; }
+  p, li { font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0; }
+  th, td { border: 1px solid #e5e7eb; padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #f8fafc; }
+  .meta { color: #6b7280; font-size: 13px; }
+  .note { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; font-size: 13px; }
+  .home { display: inline-block; margin-top: 28px; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>プライバシーポリシー</h1>
+<p class="meta">サービス名: print-to-calendar（以下「本サービス」）／制定日: 2026年6月2日</p>
+<p>BridgeSquare（以下「当方」）は、本サービスにおける利用者の個人情報および予定情報の取扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」）を定めます。</p>
+
+<h2>1. 取得する情報</h2>
+<table>
+<thead><tr><th>取得する情報</th><th>取得方法</th><th>備考</th></tr></thead>
+<tbody>
+<tr><td>メールアドレス</td><td>決済（Stripe）を通じて取得</td><td>ライセンス発行・問い合わせ対応のため</td></tr>
+<tr><td>Googleアカウント情報（メールアドレス・アカウント識別子）</td><td>Googleカレンダー連携（OAuth）時</td><td>カレンダー連携先の特定のため</td></tr>
+<tr><td>Googleカレンダーへのアクセストークン（リフレッシュトークン）</td><td>Googleカレンダー連携（OAuth）時</td><td><strong>暗号化して保管</strong>。予定の自動登録に使用</td></tr>
+<tr><td>ライセンスキー</td><td>利用者の入力</td><td><strong>平文では保存せず、ハッシュ化して保管</strong></td></tr>
+<tr><td>アップロードされた予定プリント画像</td><td>利用者の画像アップロード時</td><td>予定抽出のために一時的に処理。<strong>長期保存しません</strong>（第4条参照）</td></tr>
+<tr><td>抽出・保存された予定データ（予定名・日時・場所・メモ等）</td><td>画像解析および利用者の確認・保存時</td><td>予定の管理・カレンダー登録のため</td></tr>
+<tr><td>利用ログ（読み取り回数・利用日時・エラー情報等）</td><td>本サービスの利用時</td><td>利用回数の管理・不具合対応のため</td></tr>
+</tbody>
+</table>
+
+<h2>2. 利用目的</h2>
+<ol>
+<li>予定プリント画像から予定情報を抽出し、利用者に提示するため</li>
+<li>抽出した予定を利用者のGoogleカレンダーに登録・更新・削除するため</li>
+<li>ライセンスの有効性確認、利用期間・利用回数の管理のため</li>
+<li>決済処理、購入者へのライセンスキー発行のため</li>
+<li>お問い合わせ対応およびサポートの提供のため</li>
+<li>不具合の調査・改善、不正利用の防止のため</li>
+</ol>
+
+<h2>3. 第三者提供・外部サービスへの委託</h2>
+<p>本サービスは、目的の達成に必要な範囲で以下の外部サービスを利用します。利用者の情報の一部は、これらの事業者に提供・委託されます。</p>
+<table>
+<thead><tr><th>外部サービス</th><th>提供事業者</th><th>取扱う情報</th><th>目的</th></tr></thead>
+<tbody>
+<tr><td>Gemini API</td><td>Google LLC（米国）</td><td>アップロード画像</td><td>画像からの予定抽出（AI解析）</td></tr>
+<tr><td>Google Calendar API / OAuth</td><td>Google LLC（米国）</td><td>Googleアカウント情報・予定データ</td><td>カレンダーへの登録・更新・削除</td></tr>
+<tr><td>Stripe</td><td>Stripe, Inc.（米国）</td><td>メールアドレス・決済情報</td><td>決済処理</td></tr>
+<tr><td>GitHub Pages</td><td>GitHub, Inc.（米国）</td><td>アクセス情報</td><td>アプリ（PWA）の配信</td></tr>
+<tr><td>サーバー（VPS）</td><td>Contabo GmbH（ドイツ）</td><td>本ポリシーに定める保存対象情報</td><td>バックエンドの稼働・データ保管</td></tr>
+<tr><td>Discord（エラー通知）</td><td>Discord Inc.（米国）</td><td>エラー種別・内部ID等の技術情報のみ</td><td>同期エラーの検知・対応</td></tr>
+</tbody>
+</table>
+<p class="note"><strong>Discordへのエラー通知について:</strong> 同期エラーの調査のため、エラー内容を当方の通知チャンネルに送信しますが、<strong>アップロード画像や、画像に含まれる氏名・学校名などの個人情報は送信しません</strong>。送信するのは予定名・処理種別・内部識別子・エラー種別などの技術情報に限られます。</p>
+
+<h3>外国にある第三者への提供（越境移転）</h3>
+<p>本サービスは米国（Google・Stripe・GitHub・Discord）およびドイツ（Contabo）に所在する事業者のサービスを利用します。利用者は、本ポリシーに同意し本サービスを利用することにより、これらの外国にある第三者へ個人情報が提供されることに同意するものとします。各事業者の措置については、各事業者のプライバシーポリシーをご確認ください。</p>
+
+<h2>4. 画像の取扱い（重要）</h2>
+<ul>
+<li>アップロードされた予定プリント画像は、<strong>予定情報を抽出する目的のためにのみ</strong>、Gemini API（Google LLC）へ送信されます。</li>
+<li>当方のサーバーやデータベースに、<strong>画像そのものを長期保存することはありません</strong>。</li>
+<li>予定プリントには、お子さまの氏名・学校名など第三者の情報が写り込む場合があります。本サービスはこれらを保存対象とせず、AIが抽出した結果は<strong>必ず利用者ご自身が確認のうえ保存</strong>する仕組みとしています。</li>
+<li>撮影・アップロードする画像は、ご自身または保存・登録について同意を得た範囲のものに限定してください。</li>
+</ul>
+
+<h2>5. 保有期間</h2>
+<ul>
+<li>予定データ・Google連携情報・ライセンス情報は、利用者がライセンスを利用している間、または利用目的の達成に必要な期間、保有します。</li>
+<li>Google連携を解除した場合、当該リフレッシュトークンは無効化されます。</li>
+<li>利用者からの削除のお申し出があった場合、法令に基づき保有が必要な場合を除き、合理的な期間内に削除します。</li>
+</ul>
+
+<h2>6. 安全管理措置</h2>
+<ul>
+<li>Googleカレンダーへのアクセストークン（リフレッシュトークン）は暗号化して保管します。</li>
+<li>ライセンスキーは平文で保存せず、ハッシュ化して照合します。</li>
+<li>Gemini APIキー等の重要な認証情報はサーバー側でのみ管理し、アプリには含めません。</li>
+<li>通信は暗号化（HTTPS）により保護します。</li>
+</ul>
+
+<h2>7. 利用者の権利</h2>
+<p>利用者は、当方が保有する自己の個人情報について、開示・訂正・利用停止・削除等を請求できます。ご請求は第9条の窓口までご連絡ください。本人確認のうえ、法令に従い合理的な期間内に対応します。</p>
+
+<h2>8. 未成年者の利用</h2>
+<p>未成年者が本サービスを利用する場合は、保護者の同意のもとでご利用ください。</p>
+
+<h2>9. お問い合わせ窓口</h2>
+<ul>
+<li>事業者名: BridgeSquare</li>
+<li>連絡先メールアドレス: tamagoojiji@gmail.com</li>
+</ul>
+
+<h2>10. 本ポリシーの改定</h2>
+<p>当方は、必要に応じて本ポリシーを改定することがあります。重要な変更を行う場合は、本サービス上での告知その他適切な方法で周知します。</p>
+
+<h2>改定履歴</h2>
+<table>
+<thead><tr><th>日付</th><th>内容</th></tr></thead>
+<tbody><tr><td>2026年6月2日</td><td>制定</td></tr>
+<tr><td>2026年6月10日</td><td>お問い合わせ先メールアドレスを tamagoojiji@gmail.com に変更</td></tr></tbody>
+</table>
+
+<p class="note">本書類は実務テンプレートであり、最終的な法的有効性については弁護士または行政書士へのご確認を推奨します。</p>
+<a class="home" href="./">← 規約一覧に戻る</a>
+</div>
+</body>
+</html>
