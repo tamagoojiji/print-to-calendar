@@ -1,4 +1,4 @@
-import { env } from '../env.js';
+import { generateContent } from './vertexClient.js'; // Vertex AI 経由（ADC認証・特典クレジット対象）
 
 const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
 
@@ -61,52 +61,15 @@ function buildPrompt(): string {
 }
 
 async function callGemini(prompt: string, imageBase64: string, mimeType: string): Promise<{ text: string; model: string }> {
-  if (!env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY未設定');
-
-  const failures: string[] = [];
-  for (const model of GEMINI_MODELS) {
-    // gemini-2.5系は思考(thinking)が既定ON。maxOutputTokensが低いと思考でトークンを使い切り、
-    // 本文(JSON)が空になる(finishReason=MAX_TOKENS)。flash系は思考OFF＋JSON強制で確実化し、
-    // proは思考OFF(budget 0)非対応のためトークンを多めに確保して対応する。
-    const generationConfig: Record<string, unknown> = {
-      temperature: 0.1,
-      maxOutputTokens: 8192,
-      responseMimeType: 'application/json',
-    };
-    if (model !== 'gemini-2.5-pro') {
-      generationConfig.thinkingConfig = { thinkingBudget: 0 };
-    }
-    const payload = {
-      contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType, data: imageBase64 } }] }],
-      generationConfig,
-    };
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-
-    if (res.status === 200) {
-      const json = (await res.json()) as {
-        candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[];
-      };
-      const parts = json.candidates?.[0]?.content?.parts || [];
-      const text = parts
-        .filter((p) => p.text && !p.thought)
-        .map((p) => p.text)
-        .join('\n')
-        .trim();
-      return { text, model };
-    }
-
-    const body = await res.text().catch(() => '');
-    const reason = body.match(/"message"\s*:\s*"([^"]+)"/)?.[1] || body.slice(0, 120);
-    failures.push(`${model}:${res.status} ${reason}`);
-    if ([403, 429, 404, 503].includes(res.status)) continue;
-    throw new Error(`Gemini API HTTP ${res.status} ${reason}`);
-  }
-  throw new Error(`Gemini全モデル失敗: ${failures.join(' / ')}`);
+  // 共通ラッパー経由（Vertex AI / ADC）。JSON強制・thinking-off(flash系)・モデルフォールバックは内部で対応。
+  // proは思考ON＋多めのトークン(8192)で対応。
+  return generateContent({
+    prompt,
+    imageBase64,
+    mimeType,
+    models: GEMINI_MODELS,
+    generationConfig: { temperature: 0.1, maxOutputTokens: 8192 },
+  });
 }
 
 function clampStr(v: unknown, max = 60): string | null {

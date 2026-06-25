@@ -14,7 +14,6 @@ export const env = {
   PORT: Number(opt('PORT', '8787')),
   DB_PATH: opt('DB_PATH', './data/ptc.db'),
 
-  GEMINI_API_KEY: opt('GEMINI_API_KEY'),
   STRIPE_SECRET_KEY: opt('STRIPE_SECRET_KEY'),
   STRIPE_WEBHOOK_SECRET: opt('STRIPE_WEBHOOK_SECRET'),
   GOOGLE_CLIENT_ID: opt('GOOGLE_CLIENT_ID'),
@@ -34,7 +33,6 @@ export const env = {
 // 起動時に致命的な未設定を警告（開発では落とさない）
 export function warnMissingSecrets(): void {
   const checks: [string, string][] = [
-    ['GEMINI_API_KEY', env.GEMINI_API_KEY],
     ['STRIPE_SECRET_KEY', env.STRIPE_SECRET_KEY],
     ['STRIPE_WEBHOOK_SECRET', env.STRIPE_WEBHOOK_SECRET],
     ['GOOGLE_CLIENT_ID', env.GOOGLE_CLIENT_ID],
