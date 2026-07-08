@@ -1,12 +1,28 @@
 import { Hono } from 'hono';
+import { timingSafeEqual } from 'node:crypto';
+import { env } from '../env.js';
 import { generateContent } from '../lib/vertexClient.js';
 
 // shift-calendar SPA（https://tamagoojiji.github.io/shift-calendar/）専用の解析API。
 // 旧: SPAがユーザー入力のGemini APIキーで generativelanguage を直叩き
 // 新: プロンプト・正規化をサーバーに移植し、Vertex（特典クレジット・キー不要）経由で解析。
-// 認可: 家族用の小規模SPAのためライセンス不要。CORS許可オリジン＋$10予算ガードが補償コントロール。
+// 認可（多層）:
+//   ① 共有トークン X-Shift-Token（env SHIFT_ANALYZE_TOKEN と一致必須。未設定なら常に401＝fail-closed）
+//   ② CORS許可オリジン（ブラウザ経由の水際）
+//   ③ $10予算ガード（万一漏れても ¥1,200 で aiplatform 自動無効化＝損害上限）
+// ※SPAは公開クライアントのためトークンは配布バンドルに載る＝暗号学的な個人認証ではなく
+//   「無差別なドライブバイ呼び出しを弾く」層。真の個人認証が要る場合はログイン必須化（要ユーザー判断）。
 
 export const shiftAnalyzeRoute = new Hono();
+
+// 共有トークン検証（定数時間比較）。env未設定時は fail-closed で全拒否。
+function verifyToken(sent: string): boolean {
+  const expected = env.SHIFT_ANALYZE_TOKEN;
+  if (!expected) return false;
+  const a = Buffer.from(sent);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 約8MB
 const SHIFT_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
@@ -98,6 +114,11 @@ function normalizeEvents(data: Record<string, unknown>) {
 
 // POST /api/shift-analyze
 shiftAnalyzeRoute.post('/', async (c) => {
+  // ① 共有トークン認可（Vertexを叩く前に検証。未認可は 401 で即拒否）
+  if (!verifyToken(c.req.header('X-Shift-Token') ?? '')) {
+    return c.json({ ok: false, error: '認可されていません' }, 401);
+  }
+
   const body = await c.req.json().catch(() => ({}));
   const kind = String(body.kind || 'shift');
   const imageBase64 = String(body.imageBase64 || '');

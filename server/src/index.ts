@@ -18,7 +18,7 @@ warnMissingSecrets();
 const app = new Hono();
 
 const allowed = env.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean);
-app.use('/api/*', cors({ origin: allowed, allowMethods: ['GET', 'POST', 'OPTIONS'], allowHeaders: ['Content-Type'] }));
+app.use('/api/*', cors({ origin: allowed, allowMethods: ['GET', 'POST', 'OPTIONS'], allowHeaders: ['Content-Type', 'X-Shift-Token'] }));
 app.use('/webhook/result', cors({ origin: allowed }));
 
 app.get('/health', (c) => c.json({ ok: true, service: 'print-to-calendar', time: new Date().toISOString() }));

@@ -28,6 +28,8 @@ export const env = {
   PROVISION_TOKEN: opt('PROVISION_TOKEN'),
   // CORS許可オリジン（カンマ区切り）。本番はGitHub Pagesオリジン。
   CORS_ORIGINS: opt('CORS_ORIGINS', 'http://localhost:5173,https://tamagoojiji.github.io'),
+  // shift-calendar SPA(/api/shift-analyze)の共有トークン。未設定なら該当APIは常に401（fail-closed）。
+  SHIFT_ANALYZE_TOKEN: opt('SHIFT_ANALYZE_TOKEN'),
 };
 
 // 起動時に致命的な未設定を警告（開発では落とさない）
