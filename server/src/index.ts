@@ -5,6 +5,7 @@ import { env, warnMissingSecrets } from './env.js';
 import { migrate } from './db.js';
 import { licenseRoute } from './routes/license.js';
 import { analyzeRoute } from './routes/analyze.js';
+import { shiftAnalyzeRoute } from './routes/shiftAnalyze.js';
 import { eventsRoute } from './routes/events.js';
 import { googleRoute } from './routes/google.js';
 import { webhookRoute } from './routes/webhook.js';
@@ -24,6 +25,7 @@ app.get('/health', (c) => c.json({ ok: true, service: 'print-to-calendar', time:
 
 app.route('/api/license', licenseRoute);
 app.route('/api/analyze', analyzeRoute);
+app.route('/api/shift-analyze', shiftAnalyzeRoute);
 app.route('/api/events', eventsRoute);
 app.route('/api/google', googleRoute);
 app.route('/webhook', webhookRoute);
