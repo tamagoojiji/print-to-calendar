@@ -57,6 +57,7 @@ const EVENT_PROMPT = `この画像からイベント・予定情報を読み取�
 - 日付（YYYY-MM-DD形式）
 - 時間（HH:MM形式、不明なら空文字）
 - 内容（30文字以内で簡潔に要約）
+- 場所（会場名・店舗名・住所など。画像に書かれていなければ空文字）
 - URL（画像中にリンクやURLが含まれていれば抽出、なければ空文字）
 
 ## ルール
@@ -65,7 +66,7 @@ const EVENT_PROMPT = `この画像からイベント・予定情報を読み取�
 
 ## 出力（JSONのみ）
 \`\`\`json
-{"events":[{"date":"2026-04-15","time":"15:00","content":"イベント名","url":""}]}
+{"events":[{"date":"2026-04-15","time":"15:00","content":"イベント名","location":"","url":""}]}
 \`\`\``;
 
 function extractJson(text: string): Record<string, unknown> {
@@ -100,13 +101,14 @@ function normalizeShift(data: Record<string, unknown>) {
 
 function normalizeEvents(data: Record<string, unknown>) {
   const rawEvents = Array.isArray(data.events)
-    ? (data.events as { date?: string; time?: string; content?: string; url?: string }[])
+    ? (data.events as { date?: string; time?: string; content?: string; location?: string; url?: string }[])
     : [];
   return {
     events: rawEvents.map((e) => ({
       date: String(e.date || ''),
       time: String(e.time || ''),
       content: String(e.content || '').substring(0, 50),
+      location: String(e.location || '').substring(0, 50),
       url: String(e.url || ''),
     })),
   };
