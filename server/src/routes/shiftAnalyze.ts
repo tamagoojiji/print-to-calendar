@@ -75,6 +75,13 @@ const EVENT_PROMPT = `この画像からイベント・予定情報を読み取�
 {"events":[{"date":"2026-04-15","time":"15:00","content":"イベント名","location":"","url":""}]}
 \`\`\``;
 
+// merge=true のときに EVENT_PROMPT の末尾へ付ける（複数画像を必ず1件に統合させる）
+const EVENT_MERGE_SUFFIX = `
+
+## 必須条件
+- 渡された画像はすべて「同じ1つのイベント」の資料である。出力する events は必ず1件だけにする
+- 全画像から題名・日付・最初の開始時刻・会場・URLを集めて、その1件に統合する`;
+
 function extractJson(text: string): Record<string, unknown> {
   const fence = text.match(/```json\s*([\s\S]*?)```/);
   const target = fence ? fence[1] : text;
@@ -105,19 +112,25 @@ function normalizeShift(data: Record<string, unknown>) {
   return { facility, year: parseInt(String(data.year), 10), month: parseInt(String(data.month), 10), shifts };
 }
 
-function normalizeEvents(data: Record<string, unknown>) {
+function normalizeEvents(data: Record<string, unknown>, merge = false) {
   const rawEvents = Array.isArray(data.events)
     ? (data.events as { date?: string; time?: string; content?: string; location?: string; url?: string }[])
     : [];
-  return {
-    events: rawEvents.map((e) => ({
-      date: String(e.date || ''),
-      time: String(e.time || ''),
-      content: String(e.content || '').substring(0, 50),
-      location: String(e.location || '').substring(0, 50),
-      url: String(e.url || ''),
-    })),
-  };
+  const events = rawEvents.map((e) => ({
+    date: String(e.date || ''),
+    time: String(e.time || ''),
+    content: String(e.content || '').substring(0, 50),
+    location: String(e.location || '').substring(0, 50),
+    url: String(e.url || ''),
+  }));
+  // merge=true で2件以上返ったら、各フィールドの「最初に空でない値」で1件に畳む（固定保証）
+  if (merge && events.length >= 2) {
+    const first = (k: 'date' | 'time' | 'content' | 'location' | 'url') => events.find((e) => e[k])?.[k] ?? '';
+    return {
+      events: [{ date: first('date'), time: first('time'), content: first('content'), location: first('location'), url: first('url') }],
+    };
+  }
+  return { events };
 }
 
 // POST /api/shift-analyze
@@ -129,6 +142,7 @@ shiftAnalyzeRoute.post('/', async (c) => {
 
   const body = await c.req.json().catch(() => ({}));
   const kind = String(body.kind || 'shift');
+  const merge = body.merge === true;
 
   if (kind !== 'shift' && kind !== 'event') {
     return c.json({ ok: false, error: 'kind は shift か event を指定してください' }, 400);
@@ -173,14 +187,14 @@ shiftAnalyzeRoute.post('/', async (c) => {
 
   try {
     const { text, model } = await generateContent({
-      prompt: kind === 'shift' ? SHIFT_PROMPT : EVENT_PROMPT,
+      prompt: kind === 'shift' ? SHIFT_PROMPT : merge ? EVENT_PROMPT + EVENT_MERGE_SUFFIX : EVENT_PROMPT,
       // shift は従来通り先頭1枚だけ使う
       images: kind === 'shift' ? images.slice(0, 1) : images,
       models: SHIFT_MODELS,
       generationConfig: { temperature: 0.1, maxOutputTokens: 2048 },
     });
     const data = extractJson(text);
-    const result = kind === 'shift' ? normalizeShift(data) : normalizeEvents(data);
+    const result = kind === 'shift' ? normalizeShift(data) : normalizeEvents(data, merge);
     return c.json({ ok: true, model, result });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
