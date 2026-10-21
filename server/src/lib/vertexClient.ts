@@ -24,21 +24,30 @@ export interface GenerateOpts {
   prompt: string;
   imageBase64?: string;
   mimeType?: string;
+  images?: { imageBase64: string; mimeType: string }[];
   models?: string[];
   generationConfig?: Record<string, unknown>;
 }
 
-function buildParts(prompt: string, imageBase64?: string, mimeType?: string): Part[] {
+function buildParts(
+  prompt: string,
+  imageBase64?: string,
+  mimeType?: string,
+  images?: { imageBase64: string; mimeType: string }[],
+): Part[] {
   const parts: Part[] = [{ text: prompt }];
   if (imageBase64) parts.push({ inlineData: { mimeType: mimeType || 'image/jpeg', data: imageBase64 } });
+  for (const img of images ?? []) {
+    parts.push({ inlineData: { mimeType: img.mimeType || 'image/jpeg', data: img.imageBase64 } });
+  }
   return parts;
 }
 
 // proxy経由でフォールバックチェーンを回す（per-model で thinking-off を組む）。
 async function viaProxy(opts: GenerateOpts): Promise<{ text: string; model: string }> {
-  const { prompt, imageBase64, mimeType, models, generationConfig = {} } = opts;
+  const { prompt, imageBase64, mimeType, images, models, generationConfig = {} } = opts;
   const chain = models && models.length ? models : [DEFAULT_MODEL];
-  const parts = buildParts(prompt, imageBase64, mimeType);
+  const parts = buildParts(prompt, imageBase64, mimeType, images);
 
   let lastErr: unknown;
   for (const m of chain) {
@@ -70,9 +79,9 @@ export async function generateContent(opts: GenerateOpts): Promise<{ text: strin
   if (USE_PROXY) return viaProxy(opts);
 
   // 直接ADCモード（ローカル/SA環境）
-  const { prompt, imageBase64, mimeType, models, generationConfig = {} } = opts;
+  const { prompt, imageBase64, mimeType, images, models, generationConfig = {} } = opts;
   const chain = models && models.length ? models : [DEFAULT_MODEL];
-  const parts = buildParts(prompt, imageBase64, mimeType);
+  const parts = buildParts(prompt, imageBase64, mimeType, images);
 
   let lastErr: unknown;
   for (const m of chain) {

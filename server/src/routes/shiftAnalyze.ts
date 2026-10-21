@@ -25,6 +25,9 @@ function verifyToken(sent: string): boolean {
 }
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 約8MB
+const MAX_TOTAL_BYTES = 20 * 1024 * 1024; // 合計約20MB
+const MAX_IMAGES = 10;
+const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 const SHIFT_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
 
 const SHIFT_PROMPT = `あなたは医療施設のシフト表画像を正確に読み取るエキスパートです。
@@ -63,6 +66,9 @@ const EVENT_PROMPT = `この画像からイベント・予定情報を読み取�
 ## ルール
 - 複数のイベントがあれば全て抽出
 - 日付不明は空文字、年が書いてなければ2026年と仮定
+- 画像が複数枚ある場合、それらは同じイベントの資料の続き（例: 1枚目に題名やポスター、2枚目にタイムスケジュールや会場案内）として扱い、全画像の情報を統合して1件にまとめる
+- 統合するときは、題名を content に、最初の開始時刻を time に、会場を location に、URLがあれば url に入れる
+- 別々のイベントだと明確に分かる場合（日付も題名も異なる別のチラシ）だけ別件に分ける。同じイベント内の複数の時間帯（プログラム）は別件にしない
 
 ## 出力（JSONのみ）
 \`\`\`json
@@ -123,30 +129,53 @@ shiftAnalyzeRoute.post('/', async (c) => {
 
   const body = await c.req.json().catch(() => ({}));
   const kind = String(body.kind || 'shift');
-  const imageBase64 = String(body.imageBase64 || '');
-  const mimeType = String(body.mimeType || 'image/jpeg');
 
   if (kind !== 'shift' && kind !== 'event') {
     return c.json({ ok: false, error: 'kind は shift か event を指定してください' }, 400);
   }
-  if (!imageBase64) {
-    return c.json({ ok: false, error: 'imageBase64 が空です' }, 400);
+
+  // images 配列（新）と imageBase64/mimeType 単体（旧・互換）を配列に正規化して一本化
+  const rawImages: { imageBase64?: unknown; mimeType?: unknown }[] = Array.isArray(body.images)
+    ? body.images
+    : body.imageBase64
+      ? [{ imageBase64: body.imageBase64, mimeType: body.mimeType }]
+      : [];
+  const images = rawImages.map((img) => ({
+    imageBase64: String(img?.imageBase64 || ''),
+    mimeType: String(img?.mimeType || 'image/jpeg'),
+  }));
+
+  if (images.length === 0) {
+    return c.json({ ok: false, error: '画像がありません' }, 400);
   }
-  if (!/^[A-Za-z0-9+/=\s]+$/.test(imageBase64)) {
-    return c.json({ ok: false, error: 'imageBase64 の形式が不正です' }, 400);
+  if (images.length > MAX_IMAGES) {
+    return c.json({ ok: false, error: `画像は${MAX_IMAGES}枚までです` }, 400);
   }
-  if (!['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'].includes(mimeType)) {
-    return c.json({ ok: false, error: '対応していない画像形式です' }, 400);
+  let totalBytes = 0;
+  for (const { imageBase64, mimeType } of images) {
+    if (!imageBase64) {
+      return c.json({ ok: false, error: 'imageBase64 が空です' }, 400);
+    }
+    if (!/^[A-Za-z0-9+/=\s]+$/.test(imageBase64)) {
+      return c.json({ ok: false, error: 'imageBase64 の形式が不正です' }, 400);
+    }
+    if (!ALLOWED_MIME.includes(mimeType)) {
+      return c.json({ ok: false, error: '対応していない画像形式です' }, 400);
+    }
+    if (imageBase64.length * 0.75 > MAX_IMAGE_BYTES) {
+      return c.json({ ok: false, error: '画像が大きすぎます（8MBまで）' }, 400);
+    }
+    totalBytes += imageBase64.length * 0.75;
   }
-  if (imageBase64.length * 0.75 > MAX_IMAGE_BYTES) {
-    return c.json({ ok: false, error: '画像が大きすぎます（8MBまで）' }, 400);
+  if (totalBytes > MAX_TOTAL_BYTES) {
+    return c.json({ ok: false, error: '画像の合計が大きすぎます（20MBまで）' }, 400);
   }
 
   try {
     const { text, model } = await generateContent({
       prompt: kind === 'shift' ? SHIFT_PROMPT : EVENT_PROMPT,
-      imageBase64,
-      mimeType,
+      // shift は従来通り先頭1枚だけ使う
+      images: kind === 'shift' ? images.slice(0, 1) : images,
       models: SHIFT_MODELS,
       generationConfig: { temperature: 0.1, maxOutputTokens: 2048 },
     });
