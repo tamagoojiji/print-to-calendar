@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { timingSafeEqual } from 'node:crypto';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { env } from '../env.js';
 import { generateContent } from '../lib/vertexClient.js';
 
@@ -7,21 +7,41 @@ import { generateContent } from '../lib/vertexClient.js';
 // 旧: SPAがユーザー入力のGemini APIキーで generativelanguage を直叩き
 // 新: プロンプト・正規化をサーバーに移植し、Vertex（特典クレジット・キー不要）経由で解析。
 // 認可（多層）:
-//   ① 共有トークン X-Shift-Token（env SHIFT_ANALYZE_TOKEN と一致必須。未設定なら常に401＝fail-closed）
+//   ① Firebase IDトークン（Authorization: Bearer）。Google公開鍵で署名検証し、aud/iss=projectId・exp・
+//      email_verified=true・email が env SHIFT_ALLOWED_EMAILS（カンマ区切り）に含まれることを要求。
+//      env未設定なら常に401（fail-closed）、許可リスト外は403。
 //   ② CORS許可オリジン（ブラウザ経由の水際）
-//   ③ $10予算ガード（万一漏れても ¥1,200 で aiplatform 自動無効化＝損害上限）
-// ※SPAは公開クライアントのためトークンは配布バンドルに載る＝暗号学的な個人認証ではなく
-//   「無差別なドライブバイ呼び出しを弾く」層。真の個人認証が要る場合はログイン必須化（要ユーザー判断）。
+//   ③ $10予算ガード（損害上限）
 
 export const shiftAnalyzeRoute = new Hono();
 
-// 共有トークン検証（定数時間比較）。env未設定時は fail-closed で全拒否。
-function verifyToken(sent: string): boolean {
-  const expected = env.SHIFT_ANALYZE_TOKEN;
-  if (!expected) return false;
-  const a = Buffer.from(sent);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
+// Firebase IDトークン検証。shift-calendar の Firebase プロジェクトに固定。
+const FIREBASE_PROJECT_ID = 'shift-calendar-c92a9';
+const FIREBASE_JWKS = createRemoteJWKSet(
+  new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'),
+);
+
+type AuthResult = { ok: true } | { ok: false; status: 401 | 403; error: string };
+
+async function verifyFirebaseUser(authHeader: string): Promise<AuthResult> {
+  const allowed = env.SHIFT_ALLOWED_EMAILS.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (allowed.length === 0) return { ok: false, status: 401, error: '認可されていません' };
+  const bearer = authHeader.match(/^Bearer\s+(.+)$/i);
+  if (!bearer) return { ok: false, status: 401, error: 'Googleログインが必要です' };
+  try {
+    const { payload } = await jwtVerify(bearer[1], FIREBASE_JWKS, {
+      audience: FIREBASE_PROJECT_ID,
+      issuer: `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`,
+      algorithms: ['RS256'],
+    });
+    const email = typeof payload.email === 'string' ? payload.email.toLowerCase() : '';
+    if (payload.email_verified !== true || !email || !allowed.includes(email)) {
+      return { ok: false, status: 403, error: 'このアカウントは読み取りを許可されていません' };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, status: 401, error: 'ログインの確認に失敗しました。もう一度ログインしてください' };
+  }
 }
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 約8MB
@@ -135,9 +155,10 @@ function normalizeEvents(data: Record<string, unknown>, merge = false) {
 
 // POST /api/shift-analyze
 shiftAnalyzeRoute.post('/', async (c) => {
-  // ① 共有トークン認可（Vertexを叩く前に検証。未認可は 401 で即拒否）
-  if (!verifyToken(c.req.header('X-Shift-Token') ?? '')) {
-    return c.json({ ok: false, error: '認可されていません' }, 401);
+  // ① Firebaseログイン＋許可リスト認可（Vertexを叩く前に検証）
+  const auth = await verifyFirebaseUser(c.req.header('Authorization') ?? '');
+  if (!auth.ok) {
+    return c.json({ ok: false, error: auth.error }, auth.status);
   }
 
   const body = await c.req.json().catch(() => ({}));
