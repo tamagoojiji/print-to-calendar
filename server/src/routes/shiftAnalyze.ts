@@ -28,7 +28,7 @@ const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 約8MB
 const MAX_TOTAL_BYTES = 20 * 1024 * 1024; // 合計約20MB
 const MAX_IMAGES = 10;
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
-const SHIFT_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
+const SHIFT_MODELS = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-2.5-flash']; // 2.5-pro は廃止(404)。3.x は location=global 必須
 
 const SHIFT_PROMPT = `あなたは医療施設のシフト表画像を正確に読み取るエキスパートです。
 

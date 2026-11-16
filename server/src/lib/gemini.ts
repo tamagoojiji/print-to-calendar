@@ -1,6 +1,6 @@
 import { generateContent } from './vertexClient.js'; // Vertex AI 経由（ADC認証・特典クレジット対象）
 
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
+const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-2.5-flash']; // 2.5-pro は廃止(404)。3.x は location=global 必須
 
 export interface AnalyzedEvent {
   title: string;

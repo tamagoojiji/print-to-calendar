@@ -6,7 +6,7 @@
 // 依存: @google/genai（直接ADC時のみ）。proxy経由は標準の fetch のみ（Node18+）。
 import { GoogleGenAI, type Part, type GenerateContentConfig } from '@google/genai';
 
-const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 const LOCATION = process.env.VERTEX_LOCATION || 'global';
 const PROJECT = process.env.GOOGLE_CLOUD_PROJECT;
 
@@ -43,6 +43,14 @@ function buildParts(
   return parts;
 }
 
+// 思考の設定: gemini-3 以降は thinkingLevel LOW（thinkingBudget は非推奨で併用すると 400）。
+// 2.5 flash/flash-lite は thinkingBudget 0（2.5 は thinkingLevel 非対応で 400）。
+function thinkingFor(m: string): Record<string, unknown> | null {
+  if (/^gemini-([3-9]|\d{2,})/.test(m)) return { thinkingLevel: 'LOW' };
+  if (m.startsWith('gemini-2.5') && !m.includes('pro')) return { thinkingBudget: 0 };
+  return null;
+}
+
 // proxy経由でフォールバックチェーンを回す（per-model で thinking-off を組む）。
 async function viaProxy(opts: GenerateOpts): Promise<{ text: string; model: string }> {
   const { prompt, imageBase64, mimeType, images, models, generationConfig = {} } = opts;
@@ -52,7 +60,8 @@ async function viaProxy(opts: GenerateOpts): Promise<{ text: string; model: stri
   let lastErr: unknown;
   for (const m of chain) {
     const gc = { responseMimeType: 'application/json', ...generationConfig } as Record<string, unknown>;
-    if (m.startsWith('gemini-2.5') && !m.includes('pro')) gc.thinkingConfig = { thinkingBudget: 0 };
+    const tc = thinkingFor(m);
+    if (tc) gc.thinkingConfig = tc;
     const requestBody = { contents: [{ role: 'user', parts }], generationConfig: gc };
     try {
       const res = await fetch(PROXY_URL as string, {
@@ -86,8 +95,8 @@ export async function generateContent(opts: GenerateOpts): Promise<{ text: strin
   let lastErr: unknown;
   for (const m of chain) {
     const config = { responseMimeType: 'application/json', ...generationConfig } as Record<string, unknown>;
-    // thinking 無効化は 2.5 flash/flash-lite のみ（2.5-pro は budget=0 非対応）
-    if (m.startsWith('gemini-2.5') && !m.includes('pro')) config.thinkingConfig = { thinkingBudget: 0 };
+    const tc = thinkingFor(m);
+    if (tc) config.thinkingConfig = tc;
     try {
       const resp = await getClient().models.generateContent({
         model: m,
