@@ -213,7 +213,9 @@ shiftAnalyzeRoute.post('/', async (c) => {
       images: kind === 'shift' ? images.slice(0, 1) : images,
       models: SHIFT_MODELS,
       generationConfig: { temperature: 0.1, maxOutputTokens: 2048 },
+      provider: 'claude',
     });
+    console.log(`[shift-analyze] ${kind} ok model=${model}`);
     const data = extractJson(text);
     const result = kind === 'shift' ? normalizeShift(data) : normalizeEvents(data, merge);
     return c.json({ ok: true, model, result });

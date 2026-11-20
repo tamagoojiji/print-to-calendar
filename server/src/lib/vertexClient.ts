@@ -27,6 +27,7 @@ export interface GenerateOpts {
   images?: { imageBase64: string; mimeType: string }[];
   models?: string[];
   generationConfig?: Record<string, unknown>;
+  provider?: 'claude';
 }
 
 function buildParts(
@@ -57,6 +58,20 @@ async function viaProxy(opts: GenerateOpts): Promise<{ text: string; model: stri
   const chain = models && models.length ? models : [DEFAULT_MODEL];
   const parts = buildParts(prompt, imageBase64, mimeType, images);
 
+  if (opts.provider === 'claude') {
+    if (!USE_PROXY) throw new Error('provider claude には VERTEX_PROXY_URL と PROXY_SECRET が必要です');
+    const gc = { responseMimeType: 'application/json', ...generationConfig } as Record<string, unknown>;
+    const requestBody = { contents: [{ role: 'user', parts }], generationConfig: gc };
+    const res = await fetch(PROXY_URL as string, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Proxy-Secret': PROXY_SECRET as string },
+      body: JSON.stringify({ provider: 'claude', models: chain, request: requestBody }),
+    });
+    if (!res.ok) throw new Error(`proxy ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const data = (await res.json()) as { text?: string; model?: string };
+    return { text: (data.text ?? '').trim(), model: data.model ?? 'claude' };
+  }
+
   let lastErr: unknown;
   for (const m of chain) {
     const gc = { responseMimeType: 'application/json', ...generationConfig } as Record<string, unknown>;
@@ -85,7 +100,7 @@ async function viaProxy(opts: GenerateOpts): Promise<{ text: string; model: stri
 // 画像入力＋モデルフォールバック＋thinking-off 対応。戻りは { text, model }。
 export async function generateContent(opts: GenerateOpts): Promise<{ text: string; model: string }> {
   // proxy経由モード（VPS等）
-  if (USE_PROXY) return viaProxy(opts);
+  if (USE_PROXY || opts.provider === 'claude') return viaProxy(opts);
 
   // 直接ADCモード（ローカル/SA環境）
   const { prompt, imageBase64, mimeType, images, models, generationConfig = {} } = opts;
