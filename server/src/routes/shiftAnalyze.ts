@@ -77,30 +77,35 @@ const SHIFT_PROMPT = `あなたは医療施設のシフト表画像を正確に�
 const EVENT_PROMPT = `この画像からイベント・予定情報を読み取ってください。
 
 ## 抽出する情報
-- 日付（YYYY-MM-DD形式）
-- 時間（HH:MM形式、不明なら空文字）
-- 内容（30文字以内で簡潔に要約）
-- 場所（会場名・店舗名・住所など。画像に書かれていなければ空文字）
-- URL（画像中にリンクやURLが含まれていれば抽出、なければ空文字）
+- 日付 date（YYYY-MM-DD形式）
+- 開演（開始）時間 time（HH:MM形式、不明なら空文字）
+- 開場時間 openTime（HH:MM形式、書かれていなければ空文字）
+- 内容 content（題名。30文字以内で簡潔に要約）
+- 公演の呼び名 label（昼公演・夜公演・1回目・第2部など。無ければ空文字）
+- 場所 location（会場名・店舗名・住所など。画像に書かれていなければ空文字）
+- URL url（画像中にリンクやURLが含まれていれば抽出、なければ空文字）
 
 ## ルール
 - 複数のイベントがあれば全て抽出
 - 日付不明は空文字、年が書いてなければ2026年と仮定
-- 画像が複数枚ある場合、それらは同じイベントの資料の続き（例: 1枚目に題名やポスター、2枚目にタイムスケジュールや会場案内）として扱い、全画像の情報を統合して1件にまとめる
+- 画像が複数枚ある場合、それらは同じイベントの資料の続き（例: 1枚目に題名やポスター、2枚目にタイムスケジュールや会場案内）として扱い、全画像の情報を統合する
 - 統合するときは、題名を content に、最初の開始時刻を time に、会場を location に、URLがあれば url に入れる
-- 別々のイベントだと明確に分かる場合（日付も題名も異なる別のチラシ）だけ別件に分ける。同じイベント内の複数の時間帯（プログラム）は別件にしない
+- 同じ演目が1日に複数回あり、回ごとに開演時間がある場合（昼の部/夜の部、1回目/2回目、マチネ/ソワレ等）は、回ごとに別の予定として出す（content は同じ題名、label に回の呼び名、openTime/time はその回のもの）
+- タイムスケジュール内の出し物（例: 13:00 開会、14:00 トーク）は別件にしない。公演回が1つのイベントの中の時間帯（プログラム）は、まとめて1件にする
+- 別々のイベントだと明確に分かる場合（日付も題名も異なる別のチラシ）は別件に分ける
 
 ## 出力（JSONのみ）
 \`\`\`json
-{"events":[{"date":"2026-04-15","time":"15:00","content":"イベント名","location":"","url":""}]}
+{"events":[{"date":"2026-04-15","time":"15:00","openTime":"14:30","content":"イベント名","label":"","location":"","url":""}]}
 \`\`\``;
 
-// merge=true のときに EVENT_PROMPT の末尾へ付ける（複数画像を必ず1件に統合させる）
+// merge=true のときに EVENT_PROMPT の末尾へ付ける（複数画像を1つのイベントとして統合させる）
 const EVENT_MERGE_SUFFIX = `
 
 ## 必須条件
-- 渡された画像はすべて「同じ1つのイベント」の資料である。出力する events は必ず1件だけにする
-- 全画像から題名・日付・最初の開始時刻・会場・URLを集めて、その1件に統合する`;
+- 渡された画像はすべて「同じ1つのイベント」の資料である
+- 公演回が1つなら、全画像から題名・日付・開場時間・最初の開始時刻・会場・URLを集めて1件に統合する
+- 公演回が複数あるときだけ、回ごとに分けて出す（題名・会場・URLは全回共通）`;
 
 function extractJson(text: string): Record<string, unknown> {
   const fence = text.match(/```json\s*([\s\S]*?)```/);
@@ -132,25 +137,46 @@ function normalizeShift(data: Record<string, unknown>) {
   return { facility, year: parseInt(String(data.year), 10), month: parseInt(String(data.month), 10), shifts };
 }
 
-function normalizeEvents(data: Record<string, unknown>, merge = false) {
+// label があれば題名の末尾に「（昼公演）」の形で付ける（題名が既に含むなら付けない）
+function withLabel(content: string, label: string) {
+  const s = label && !content.includes(label) ? `${content}（${label}）` : content;
+  return s.substring(0, 50);
+}
+
+export function normalizeEvents(data: Record<string, unknown>, merge = false) {
   const rawEvents = Array.isArray(data.events)
-    ? (data.events as { date?: string; time?: string; content?: string; location?: string; url?: string }[])
+    ? (data.events as { date?: string; time?: string; openTime?: string; content?: string; label?: string; location?: string; url?: string }[])
     : [];
-  const events = rawEvents.map((e) => ({
+  const rows = rawEvents.map((e) => ({
     date: String(e.date || ''),
     time: String(e.time || ''),
-    content: String(e.content || '').substring(0, 50),
+    openTime: String(e.openTime || ''),
+    content: String(e.content || ''),
+    label: String(e.label || ''),
     location: String(e.location || '').substring(0, 50),
     url: String(e.url || ''),
   }));
-  // merge=true で2件以上返ったら、各フィールドの「最初に空でない値」で1件に畳む（固定保証）
-  if (merge && events.length >= 2) {
-    const first = (k: 'date' | 'time' | 'content' | 'location' | 'url') => events.find((e) => e[k])?.[k] ?? '';
-    return {
-      events: [{ date: first('date'), time: first('time'), content: first('content'), location: first('location'), url: first('url') }],
-    };
+  const out = (r: (typeof rows)[number]) => ({
+    date: r.date, time: r.time, openTime: r.openTime, content: withLabel(r.content, r.label), location: r.location, url: r.url,
+  });
+  if (!merge || rows.length < 2) return { events: rows.map(out) };
+
+  // merge=true で2件以上: 題名・会場・URLを共通化し、date 空は埋め、(date,time) 重複と time 空の余り行を除く
+  const first = (k: 'date' | 'content' | 'location' | 'url') => rows.find((r) => r[k])?.[k] ?? '';
+  const common = { date: first('date'), content: first('content'), location: first('location'), url: first('url') };
+  const merged: typeof rows = [];
+  for (const r of rows) {
+    const row = { ...r, date: r.date || common.date, content: common.content, location: common.location, url: common.url };
+    const dup = merged.find((m) => m.date === row.date && m.time === row.time);
+    if (dup) {
+      if (!dup.openTime) dup.openTime = row.openTime;
+      if (!dup.label) dup.label = row.label;
+      continue;
+    }
+    merged.push(row);
   }
-  return { events };
+  const kept = merged.filter((r) => r.time || !merged.some((m) => m.date === r.date && m.time));
+  return { events: kept.map(out) };
 }
 
 // POST /api/shift-analyze
